@@ -28,4 +28,16 @@ dependencies {
 
     //google play
     implementation 'com.google.android.gms:play-services-maps:16.0.0'
+
+    //firebase
+    implementation 'com.google.firebase:firebase-core:11.8.0'
+    implementation 'com.google.firebase:firebase-auth:16.0.4'
+    implementation 'com.firebaseui:firebase-ui-auth:4.1.0'
+
+
+
 }
+
+apply plugin: 'com.google.gms.google-services'
+
+//apply plugin: 'com.google.gms.google-services'

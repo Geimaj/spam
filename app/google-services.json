@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "173278640213",
+    "firebase_url": "https://street-spam.firebaseio.com",
+    "project_id": "street-spam",
+    "storage_bucket": "street-spam.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:173278640213:android:dbeb49897748dccb",
+        "android_client_info": {
+          "package_name": "com.example.jamie.spam"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "173278640213-t0qoq5v7mpeajmqbpdgsbfl78ijsbn25.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.jamie.spam",
+            "certificate_hash": "5e7777319514d8cbaf5a5d7a8272d05c3dc72c2a"
+          }
+        },
+        {
+          "client_id": "173278640213-glncauo7ba5el1fpt1mu7goor2t2ive3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQlmk33S1r6SL5qooIYfDI0o0i6Wdfklg"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "173278640213-glncauo7ba5el1fpt1mu7goor2t2ive3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
