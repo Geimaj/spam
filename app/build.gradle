@@ -27,5 +27,5 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
     //google play
-    implementation 'com.google.android.gms:play-services:11.4.0'
+    implementation 'com.google.android.gms:play-services-maps:16.0.0'
 }
