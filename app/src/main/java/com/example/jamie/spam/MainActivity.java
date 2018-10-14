@@ -5,7 +5,11 @@ import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import com.firebase.ui.auth.AuthUI;
@@ -33,9 +37,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        //setup auth
+
         //init FirebaseAuth
         mAuth = FirebaseAuth.getInstance();
-
 
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
             @Override
@@ -67,10 +72,33 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
+        //diable edit texts
+        final EditText etFrom = (EditText) findViewById(R.id.etFrom);
+        EditText etDestination = (EditText) findViewById(R.id.etDestination);
+        etDestination.setInputType(InputType.TYPE_NULL);
+        etFrom.setInputType(InputType.TYPE_NULL);
 
-//        if(isServicesVersionCorrect()){
-//            init();
-//        }
+
+        etFrom.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                return false;
+            }
+        });
+
+        etDestination.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                return false;
+            }
+        });
+
+
+
+        if(isServicesVersionCorrect()){
+            init();
+        }
+
 
     }
 
