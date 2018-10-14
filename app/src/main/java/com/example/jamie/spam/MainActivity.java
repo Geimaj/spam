@@ -1,8 +1,10 @@
 package com.example.jamie.spam;
 
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
@@ -22,21 +24,28 @@ import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.PlaceDetectionClient;
+import com.google.android.gms.location.places.PlaceLikelihood;
+import com.google.android.gms.location.places.PlaceLikelihoodBufferResponse;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.gson.Gson;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback{
 
-    private static final String TAG = "DEBUGZ";
+    public static final String TAG = "DEBUGZ";
 
     private static final int ERROR_DIALOG_REQUEST = 9001;
     private static final int RC_SIGN_IN = 1;
@@ -49,6 +58,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FirebaseAuth.AuthStateListener mAuthStateListener;
 
     private GeoDataClient mGeoDataClient;
+    private PlaceDetectionClient mPlaceDetectionClient;
+
     private boolean mLocationPermissionGranted = false;
 
     private Place from;
@@ -71,6 +82,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // Construct a GeoDataClient.
         mGeoDataClient = Places.getGeoDataClient(this, null);
+
+        // Construct a PlaceDetectionClient.
+        mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
 
         getLocationPermission();
 
@@ -155,6 +169,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 if (mLocationPermissionGranted) {
                     //next activity
+                    startDirectionsActivity(from, destination);
                 } else {
                     getLocationPermission();
                 }
@@ -183,6 +198,53 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+    private void getCurrentLocation(){
+
+        @SuppressLint("MissingPermission")
+        Task<PlaceLikelihoodBufferResponse> placeResult =
+                mPlaceDetectionClient.getCurrentPlace(null);
+        placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
+            @Override
+            public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
+                PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
+
+                if(likelyPlaces.get(0) != null){
+                    Place p = likelyPlaces.get(0).getPlace();
+
+                    startDirectionsActivity(p, destination);
+                    likelyPlaces.release();
+                }
+
+                likelyPlaces.release();
+            }
+        });
+
+    }
+
+
+    private void startDirectionsActivity(Place from, Place destination) {
+        if(from == null){
+            if(mLocationPermissionGranted){
+                //get current location
+                getCurrentLocation();
+            } else {
+                getLocationPermission();
+            }
+            return;
+        }
+
+        if(destination == null){
+            return;
+        }
+
+        Intent i = new Intent(getApplicationContext(), DirectionsActivity.class);
+
+
+        i.putExtra("from", from.getName());
+        i.putExtra("destination", destination.getName());
+
+        startActivity(i);
+    }
 
 
     @Override
