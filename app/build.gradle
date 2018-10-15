@@ -29,6 +29,7 @@ dependencies {
     //google play
     implementation 'com.google.android.gms:play-services-maps:16.0.0'
     implementation 'com.google.android.gms:play-services-places:16.0.0'
+    implementation 'com.google.maps:google-maps-services:0.1.20'
 //    implementation 'com.google.android.gms:play-services-auth'
 
     //firebase
