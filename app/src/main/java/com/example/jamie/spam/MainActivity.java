@@ -169,6 +169,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 if (mLocationPermissionGranted) {
                     //next activity
+                    Log.d(TAG, "Start acitivity with " + from.getName() + " AND " + destination.getName());
                     startDirectionsActivity(from, destination);
                 } else {
                     getLocationPermission();
@@ -306,15 +307,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 finish();
             }
         } else if (requestCode == RC_PLACE_PICKER_DESTINATION) {
-            if(resultCode == RESULT_OK){
+            if (resultCode == RESULT_OK) {
                 Place place = PlacePicker.getPlace(data, this);
                 destination = place;
                 etDestination.setText(place.getAddress());
 
                 MarkerOptions destinationMarker
                         = new MarkerOptions()
-                            .position(destination.getLatLng())
-                            .title(destination.getName().toString());
+                        .position(destination.getLatLng())
+                        .title(destination.getName().toString());
+
+                map.addMarker(destinationMarker);
+
+
+            } else if (resultCode == RESULT_CANCELED) {
+                Log.d(TAG, "Place pick canceled");
+            }
+        } else if (requestCode == RC_PLACE_PICKER_ORIGIN) {
+            if(resultCode == RESULT_OK){
+                Place place = PlacePicker.getPlace(data, this);
+                from = place;
+                etFrom.setText(place.getAddress());
+
+                MarkerOptions destinationMarker
+                        = new MarkerOptions()
+                        .position(from.getLatLng())
+                        .title(from.getName().toString());
 
                 map.addMarker(destinationMarker);
 
@@ -323,6 +341,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Log.d(TAG, "Place pick canceled");
             }
         }
+
     }
 
 
