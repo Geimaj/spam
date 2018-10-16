@@ -100,7 +100,7 @@
 
         <android.support.design.widget.FloatingActionButton
             android:id="@+id/fabGetDirections"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
             android:layout_marginBottom="@dimen/margin_small"
@@ -115,7 +115,14 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             tools:context=".MapsActivity" />
-    </FrameLayout>
 
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="bottom|center_horizontal">
+
+        </TableRow>
+
+    </FrameLayout>
 
 </LinearLayout>

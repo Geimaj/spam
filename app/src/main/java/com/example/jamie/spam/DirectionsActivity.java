@@ -1,9 +1,11 @@
 package com.example.jamie.spam;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -27,6 +29,7 @@ import com.google.maps.model.TravelMode;
 import org.joda.time.DateTime;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -36,16 +39,30 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
     private Place destination;
 
     private MapFragment mapFragment;
+    private TextView tvTripDetails;
+
     private GoogleMap map;
 
-    private TravelMode travelMode;
+    private TripData tripData;
 
     private boolean mapReady = false;
+    private HashMap<TravelMode, Integer> travelColors;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_directions);
+
+        Intent i = getIntent();
+        tripData = (TripData) i.getParcelableExtra("tripData");
+
+        travelColors = new HashMap<>();
+        travelColors.put(TravelMode.DRIVING, getColor(R.color.color_car));
+        travelColors.put(TravelMode.TRANSIT, getColor(R.color.color_public));
+        travelColors.put(TravelMode.BICYCLING, getColor(R.color.color_bike));
+        travelColors.put(TravelMode.WALKING, getColor(R.color.color_walk));
+
+        tvTripDetails = (TextView) findViewById(R.id.tvTripDetails);
 
         mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.directionsMap);
         mapFragment.getMapAsync(this);
@@ -91,9 +108,7 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
     }
 
     private void getDirections() {
-        Intent i = getIntent();
 
-        TripData tripData = (TripData) i.getParcelableExtra("tripData");
 
         Log.d(MainActivity.TAG, "directions FROM: " + tripData.getOriginName());
         Log.d(MainActivity.TAG, "directions TO: " + tripData.getDestintaionName());
@@ -113,6 +128,8 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
 
             addMarkersToMap(result);
 
+            tvTripDetails.setText(tripData.getTravelMode().toString() + "\n" + getEndLocationTitle(result));
+
             drawRoute(result);
 
             com.google.maps.model.LatLng start = result.routes[0].legs[0].startLocation;
@@ -129,11 +146,7 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
 
             center = new LatLng(start.lat, start.lng);
 
-
-            map.animateCamera(CameraUpdateFactory.newLatLngZoom(center, 10));
-
-
-//            Log.d(MainActivity.TAG, getEndLocationTitle(result));
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(center, 15));
 
         } catch (ApiException e) {
             e.printStackTrace();
@@ -173,6 +186,8 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
 
             }
 
+            polylineOptions.color(travelColors.get(tripData.getTravelMode()));
+
             map.addPolyline(polylineOptions);
         }
 
@@ -182,9 +197,9 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
         GeoApiContext geoApiContext = new GeoApiContext();
         return geoApiContext.setQueryRateLimit(3)
                 .setApiKey(getString(R.string.google_directions_api_key))
-                .setConnectTimeout(25, TimeUnit.SECONDS)
-                .setReadTimeout(1, TimeUnit.SECONDS)
-                .setWriteTimeout(1, TimeUnit.SECONDS);
+                .setConnectTimeout(40, TimeUnit.SECONDS)
+                .setReadTimeout(20, TimeUnit.SECONDS)
+                .setWriteTimeout(20, TimeUnit.SECONDS);
     }
 
     @Override
