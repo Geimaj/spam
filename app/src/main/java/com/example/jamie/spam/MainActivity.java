@@ -3,6 +3,7 @@ package com.example.jamie.spam;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
@@ -14,6 +15,7 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -38,6 +40,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.gson.Gson;
+import com.google.maps.model.TravelMode;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -65,9 +68,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Place from;
     private Place destination;
 
+    private TravelMode travelMode = TravelMode.DRIVING;
+
     private EditText etDestination;
     private EditText etFrom;
     private MapFragment mapFragment;
+    private Button btnCar;
+    private Button btnPublic;
+    private Button btnBike;
+    private Button btnWalk;
+    private FloatingActionButton fabDirections;
 
     private GoogleMap map;
 
@@ -158,21 +168,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
-        FloatingActionButton fabDirections = (FloatingActionButton) findViewById(R.id.fabGetDirections);
+        fabDirections = (FloatingActionButton) findViewById(R.id.fabGetDirections);
 
         fabDirections.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (destination == null) {
                     Toast.makeText(MainActivity.this, "Select a destination", Toast.LENGTH_LONG).show();
-                }
-
-                if (mLocationPermissionGranted) {
-                    //next activity
-                    Log.d(TAG, "Start acitivity with " + from.getName() + " AND " + destination.getName());
-                    startDirectionsActivity(from, destination);
                 } else {
-                    getLocationPermission();
+
+
+                    if (mLocationPermissionGranted) {
+                        //next activity
+                        startDirectionsActivity(from, destination);
+                    } else {
+                        getLocationPermission();
+                    }
                 }
 
             }
@@ -191,6 +202,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        btnCar = (Button) findViewById(R.id.btnCar);
+        btnPublic = (Button) findViewById(R.id.btnTrain);
+        btnBike = (Button) findViewById(R.id.btnBike);
+        btnWalk = (Button) findViewById(R.id.btnWalk);
+
+        btnCar.setOnClickListener(btnCarClickListener);
+        btnPublic.setOnClickListener(btnPublicClickListener);
+        btnBike.setOnClickListener(btnBikeClickListener);
+        btnWalk.setOnClickListener(btnWalkClickListener);
 
         if (isServicesVersionCorrect()) {
             init();
@@ -198,6 +218,49 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     }
+
+    public void unselectButtons(Button[] buttons) {
+        for(Button button : buttons){
+//            button.sel
+        }
+    }
+
+    // Click listener for car button
+    View.OnClickListener btnCarClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            travelMode = TravelMode.DRIVING;
+            fabDirections.setImageResource(R.drawable.ic_car);
+        }
+    };
+
+    // Click listener for  public button
+
+    View.OnClickListener btnPublicClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            travelMode = TravelMode.TRANSIT;
+            fabDirections.setImageResource(R.drawable.ic_train);
+        }
+    };
+    // Click listener for bike button
+
+    View.OnClickListener btnBikeClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            travelMode = TravelMode.BICYCLING;
+            fabDirections.setImageResource(R.drawable.ic_bike);
+        }
+    };
+
+    // Click listener for walk button
+    View.OnClickListener btnWalkClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            travelMode = TravelMode.WALKING;
+            fabDirections.setImageResource(R.drawable.ic_walk);
+        }
+    };
 
     private void getCurrentLocation(){
 
@@ -240,9 +303,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         Intent i = new Intent(getApplicationContext(), DirectionsActivity.class);
 
+        TripData tripData = new TripData("ME", travelMode, from, destination);
 
-        i.putExtra("from", from.getName());
-        i.putExtra("destination", destination.getName());
+        i.putExtra("tripData", tripData);
 
         startActivity(i);
     }

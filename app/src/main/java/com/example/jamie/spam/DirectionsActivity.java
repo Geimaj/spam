@@ -1,12 +1,12 @@
 package com.example.jamie.spam;
 
 import android.content.Intent;
-import android.location.Location;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
 import com.google.android.gms.location.places.Place;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -15,8 +15,6 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.DirectionsApi;
 import com.google.maps.GeoApiContext;
 import com.google.maps.errors.ApiException;
-import com.google.maps.internal.PolylineEncoding;
-import com.google.maps.model.DirectionsLeg;
 import com.google.maps.model.DirectionsResult;
 
 //import
@@ -29,7 +27,6 @@ import com.google.maps.model.TravelMode;
 import org.joda.time.DateTime;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +37,8 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
 
     private MapFragment mapFragment;
     private GoogleMap map;
+
+    private TravelMode travelMode;
 
     private boolean mapReady = false;
 
@@ -94,11 +93,11 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
     private void getDirections() {
         Intent i = getIntent();
 
-        String sFrom = i.getStringExtra("from");
-        String destinationName = i.getStringExtra("destination");
+        TripData tripData = (TripData) i.getParcelableExtra("tripData");
 
-        Log.d(MainActivity.TAG, "directions FROM: " + sFrom);
-        Log.d(MainActivity.TAG, "directions TO: " + destinationName);
+        Log.d(MainActivity.TAG, "directions FROM: " + tripData.getOriginName());
+        Log.d(MainActivity.TAG, "directions TO: " + tripData.getDestintaionName());
+        Log.d(MainActivity.TAG, "directions travelMode: " + tripData.getTravelMode().toString());
 
 
         DateTime now = new DateTime();
@@ -106,15 +105,33 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
         try {
             DirectionsResult result =
                     DirectionsApi.newRequest(getGeoContext())
-                            .mode(TravelMode.DRIVING)
-                            .origin(sFrom)
-                            .destination(destinationName)
+                            .mode(tripData.getTravelMode())
+                            .origin(tripData.getOriginName())
+                            .destination(tripData.getDestintaionName())
                             .departureTime(now)
                             .await();
 
             addMarkersToMap(result);
 
             drawRoute(result);
+
+            com.google.maps.model.LatLng start = result.routes[0].legs[0].startLocation;
+            com.google.maps.model.LatLng end = result.routes[0].legs[0].endLocation;
+
+            LatLng center;
+
+//            LatLngBounds area;
+//            try{
+//                area = new LatLngBounds(new LatLng(end.lat, end.lng), new LatLng(start.lat, start.lng));
+//            } catch (IllegalArgumentException e){
+//                area = new LatLngBounds(new LatLng(start.lat, start.lng), new LatLng(end.lat, end.lng));
+//            }
+
+            center = new LatLng(start.lat, start.lng);
+
+
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(center, 10));
+
 
 //            Log.d(MainActivity.TAG, getEndLocationTitle(result));
 

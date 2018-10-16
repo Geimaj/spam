@@ -3,4 +3,8 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+    <color name="color_car">#42a5f5</color>
+    <color name="color_public">#64ffda</color>
+    <color name="color_bike">#00b8d4</color>
+    <color name="color_walk">#e1bee7</color>
 </resources>
