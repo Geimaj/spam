@@ -14,6 +14,8 @@ import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.maps.DirectionsApi;
 import com.google.maps.GeoApiContext;
 import com.google.maps.errors.ApiException;
@@ -108,15 +110,7 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
     }
 
     private void getDirections() {
-
-
-        Log.d(MainActivity.TAG, "directions FROM: " + tripData.getOriginName());
-        Log.d(MainActivity.TAG, "directions TO: " + tripData.getDestintaionName());
-        Log.d(MainActivity.TAG, "directions travelMode: " + tripData.getTravelMode().toString());
-
-
         DateTime now = new DateTime();
-
         try {
             DirectionsResult result =
                     DirectionsApi.newRequest(getGeoContext())
@@ -148,6 +142,8 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
 
             map.animateCamera(CameraUpdateFactory.newLatLngZoom(center, 15));
 
+            saveTrip(tripData);
+
         } catch (ApiException e) {
             e.printStackTrace();
             Log.d(MainActivity.TAG, "API ERROR");
@@ -158,6 +154,14 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
             Log.d(MainActivity.TAG, "IO E");
             e.printStackTrace();
         }
+
+    }
+
+    private void saveTrip(TripData tripData) {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference("trip");
+
+        myRef.setValue(tripData);
 
     }
 
