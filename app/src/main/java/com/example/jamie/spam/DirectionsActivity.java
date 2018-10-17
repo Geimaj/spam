@@ -1,7 +1,6 @@
 package com.example.jamie.spam;
 
 import android.content.Intent;
-import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -58,6 +57,11 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
         Intent i = getIntent();
         tripData = (TripData) i.getParcelableExtra("tripData");
 
+
+        Log.d(MainActivity.TAG, "directions from " + tripData.getOriginAddress());
+        Log.d(MainActivity.TAG, "directions to " + tripData.getDestintaionAddress());
+
+
         travelColors = new HashMap<>();
         travelColors.put(TravelMode.DRIVING, getColor(R.color.color_car));
         travelColors.put(TravelMode.TRANSIT, getColor(R.color.color_public));
@@ -111,12 +115,13 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
 
     private void getDirections() {
         DateTime now = new DateTime();
+
         try {
             DirectionsResult result =
                     DirectionsApi.newRequest(getGeoContext())
                             .mode(tripData.getTravelMode())
-                            .origin(tripData.getOriginName())
-                            .destination(tripData.getDestintaionName())
+                            .origin(tripData.getOriginAddress())
+                            .destination(tripData.getDestintaionAddress())
                             .departureTime(now)
                             .await();
 
@@ -161,7 +166,7 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference myRef = database.getReference("trip");
 
-        myRef.setValue(tripData);
+        myRef.push().setValue(tripData);
 
     }
 

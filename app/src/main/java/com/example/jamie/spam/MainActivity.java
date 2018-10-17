@@ -303,7 +303,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         Intent i = new Intent(getApplicationContext(), DirectionsActivity.class);
 
-        TripData tripData = new TripData("ME", travelMode, from, destination);
+        TripData tripData = new TripData(mAuth.getCurrentUser().getUid(), travelMode, from, destination);
+
+        Log.d(TAG, "starting directions for " + from.getName() + destination.getName());
+
 
         i.putExtra("tripData", tripData);
 
@@ -425,11 +428,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void onSignedInInitialized() {
-        Toast.makeText(MainActivity.this, "Signed init", Toast.LENGTH_LONG).show();
+//        Toast.makeText(MainActivity.this, "Signed init", Toast.LENGTH_LONG).show();
     }
 
     private void onSignedOutCleanup() {
-        Toast.makeText(MainActivity.this, "Signed OUT", Toast.LENGTH_LONG).show();
+//        Toast.makeText(MainActivity.this, "Signed OUT", Toast.LENGTH_LONG).show();
 
     }
 
