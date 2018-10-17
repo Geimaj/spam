@@ -303,7 +303,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         Intent i = new Intent(getApplicationContext(), DirectionsActivity.class);
 
-        TripData tripData = new TripData("ME", travelMode, from, destination);
+        TripData tripData = new TripData(mAuth.getCurrentUser().getUid(), travelMode, from, destination);
 
         i.putExtra("tripData", tripData);
 

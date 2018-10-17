@@ -6,6 +6,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -120,6 +121,11 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
                             .departureTime(now)
                             .await();
 
+            if(result.routes.length <= 0){
+                Toast.makeText(getApplicationContext(), "No routes for " + tripData.getTravelMode().toString(), Toast.LENGTH_LONG);
+                finish();
+            }
+
             addMarkersToMap(result);
 
             tvTripDetails.setText(tripData.getTravelMode().toString() + "\n" + getEndLocationTitle(result));
@@ -161,7 +167,7 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference myRef = database.getReference("trip");
 
-        myRef.setValue(tripData);
+        myRef.push().setValue(tripData);
 
     }
 
