@@ -11,14 +11,14 @@ public class TripData implements Parcelable {
 
     private String userID;
     private TravelMode travelMode;
-    private String originName;
-    private String destintaionName;
+    private String originAddress;
+    private String destintaionAddress;
 
     public TripData(String userID, TravelMode travelMode, Place origin, Place destintaion) {
         this.userID = userID;
         this.travelMode = travelMode;
-        this.originName = origin.getName().toString();
-        this.destintaionName = destintaion.getName().toString();
+        this.originAddress = origin.getAddress().toString();
+        this.destintaionAddress = destintaion.getAddress().toString();
     }
 
     public String getUserID() {
@@ -37,19 +37,19 @@ public class TripData implements Parcelable {
         this.travelMode = travelMode;
     }
 
-    public String getOriginName() {
-        return originName;
+    public String getOriginAddress() {
+        return originAddress;
     }
 
-    public String getDestintaionName() {
-        return destintaionName;
+    public String getDestintaionAddress() {
+        return destintaionAddress;
     }
 
     protected TripData(Parcel in) {
         userID = in.readString();
         travelMode = (TravelMode) in.readValue(TravelMode.class.getClassLoader());
-        originName = in.readString();
-        destintaionName = in.readString();
+        originAddress = in.readString();
+        destintaionAddress = in.readString();
     }
 
     @Override
@@ -61,8 +61,8 @@ public class TripData implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(userID);
         dest.writeValue(travelMode);
-        dest.writeString(originName);
-        dest.writeString(destintaionName);
+        dest.writeString(originAddress);
+        dest.writeString(destintaionAddress);
     }
 
     @SuppressWarnings("unused")

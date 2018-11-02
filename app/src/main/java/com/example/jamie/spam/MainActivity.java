@@ -305,6 +305,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         TripData tripData = new TripData(mAuth.getCurrentUser().getUid(), travelMode, from, destination);
 
+
         i.putExtra("tripData", tripData);
 
         startActivity(i);
@@ -425,11 +426,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void onSignedInInitialized() {
-        Toast.makeText(MainActivity.this, "Signed init", Toast.LENGTH_LONG).show();
+//        Toast.makeText(MainActivity.this, "Signed init", Toast.LENGTH_LONG).show();
     }
 
     private void onSignedOutCleanup() {
-        Toast.makeText(MainActivity.this, "Signed OUT", Toast.LENGTH_LONG).show();
+//        Toast.makeText(MainActivity.this, "Signed OUT", Toast.LENGTH_LONG).show();
 
     }
 
