@@ -1,11 +1,10 @@
 package com.example.jamie.spam;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
@@ -27,7 +26,6 @@ import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceDetectionClient;
-import com.google.android.gms.location.places.PlaceLikelihood;
 import com.google.android.gms.location.places.PlaceLikelihoodBufferResponse;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
@@ -39,14 +37,13 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.gson.Gson;
 import com.google.maps.model.TravelMode;
 
-import java.io.Serializable;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback{
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     public static final String TAG = "DEBUGZ";
 
@@ -80,6 +77,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FloatingActionButton fabDirections;
 
     private GoogleMap map;
+    private boolean mapReady = false;
+
+    private Directions directions;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -147,23 +147,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
-        etFrom.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View view, boolean b) {
-                pickPlace(RC_PLACE_PICKER_ORIGIN);
-            }
-        });
-
         etDestination.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                pickPlace(RC_PLACE_PICKER_DESTINATION);
-            }
-        });
-
-        etDestination.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View view, boolean b) {
                 pickPlace(RC_PLACE_PICKER_DESTINATION);
             }
         });
@@ -180,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                     if (mLocationPermissionGranted) {
                         //next activity
-                        startDirectionsActivity(from, destination);
+                        startDirectionsProcedure(from, destination);
                     } else {
                         getLocationPermission();
                     }
@@ -194,7 +180,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         fabLocation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mLocationPermissionGranted){
+                if (mLocationPermissionGranted) {
                     Log.d(TAG, "GOT PERMS");
                 } else {
                     getLocationPermission();
@@ -219,37 +205,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    public void unselectButtons(Button[] buttons) {
-        for(Button button : buttons){
-//            button.sel
-        }
-    }
-
     // Click listener for car button
     View.OnClickListener btnCarClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
             travelMode = TravelMode.DRIVING;
             fabDirections.setImageResource(R.drawable.ic_car);
+            startDirectionsProcedure(from, destination);
         }
     };
 
     // Click listener for  public button
-
     View.OnClickListener btnPublicClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
             travelMode = TravelMode.TRANSIT;
             fabDirections.setImageResource(R.drawable.ic_train);
+            startDirectionsProcedure(from, destination);
+
         }
     };
-    // Click listener for bike button
 
+    // Click listener for bike button
     View.OnClickListener btnBikeClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
             travelMode = TravelMode.BICYCLING;
             fabDirections.setImageResource(R.drawable.ic_bike);
+            startDirectionsProcedure(from, destination);
+
         }
     };
 
@@ -259,12 +243,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         public void onClick(View view) {
             travelMode = TravelMode.WALKING;
             fabDirections.setImageResource(R.drawable.ic_walk);
+            startDirectionsProcedure(from, destination);
+
         }
     };
 
-    private void getCurrentLocation(){
+    private void getCurrentLocation() {
 
-        @SuppressLint("MissingPermission")
+//        @SuppressLint("MissingPermission")
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            getLocationPermission();
+            return;
+        }
         Task<PlaceLikelihoodBufferResponse> placeResult =
                 mPlaceDetectionClient.getCurrentPlace(null);
         placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
@@ -275,7 +266,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if(likelyPlaces.get(0) != null){
                     Place p = likelyPlaces.get(0).getPlace();
 
-                    startDirectionsActivity(p, destination);
+                    //add marker to current location
+                    addMarker(p);
+
                     likelyPlaces.release();
                 }
 
@@ -285,8 +278,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+    private void addMarker(Place place){
+                MarkerOptions marker
+                        = new MarkerOptions()
+                        .position(place.getLatLng())
+                        .title(place.getName().toString());
 
-    private void startDirectionsActivity(Place from, Place destination) {
+
+                map.addMarker(marker);
+    }
+
+    private void startDirectionsProcedure(Place from, Place destination) {
         if(from == null){
             if(mLocationPermissionGranted){
                 //get current location
@@ -298,17 +300,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         if(destination == null){
+            Toast.makeText(getApplicationContext(), "Select a destination", Toast.LENGTH_LONG).show();
             return;
         }
 
-        Intent i = new Intent(getApplicationContext(), DirectionsActivity.class);
 
         TripData tripData = new TripData(mAuth.getCurrentUser().getUid(), travelMode, from, destination);
 
+        directions.drawRoutes(tripData);
 
-        i.putExtra("tripData", tripData);
 
-        startActivity(i);
     }
 
 
@@ -370,40 +371,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Toast.makeText(MainActivity.this, "Signed in canceled", Toast.LENGTH_LONG).show();
                 finish();
             }
+
         } else if (requestCode == RC_PLACE_PICKER_DESTINATION) {
             if (resultCode == RESULT_OK) {
                 Place place = PlacePicker.getPlace(data, this);
                 destination = place;
                 etDestination.setText(place.getAddress());
-
-                MarkerOptions destinationMarker
-                        = new MarkerOptions()
-                        .position(destination.getLatLng())
-                        .title(destination.getName().toString());
-
-                map.addMarker(destinationMarker);
-
+                Log.d(TAG, "Chosen: " + destination.getName());
 
             } else if (resultCode == RESULT_CANCELED) {
                 Log.d(TAG, "Place pick canceled");
+                etDestination.setText("");
             }
+
+            fabDirections.requestFocus();
         } else if (requestCode == RC_PLACE_PICKER_ORIGIN) {
             if(resultCode == RESULT_OK){
                 Place place = PlacePicker.getPlace(data, this);
                 from = place;
                 etFrom.setText(place.getAddress());
 
-                MarkerOptions destinationMarker
-                        = new MarkerOptions()
-                        .position(from.getLatLng())
-                        .title(from.getName().toString());
-
-                map.addMarker(destinationMarker);
+                map.clear();
+                addMarker(from);
 
 
             } else if(resultCode == RESULT_CANCELED){
                 Log.d(TAG, "Place pick canceled");
             }
+
+            fabDirections.requestFocus();
         }
 
     }
@@ -451,11 +447,29 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void init() {
+        Log.d(TAG, "initializing activity...");
+        getCurrentLocation();
+
+
+
 
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
+        mapReady = true;
+
+
+        //fetch our colors corresponding to the travel mode
+        HashMap<TravelMode, Integer> travelColors = new HashMap<>();
+        travelColors.put(TravelMode.DRIVING, getColor(R.color.color_car));
+        travelColors.put(TravelMode.TRANSIT, getColor(R.color.color_public));
+        travelColors.put(TravelMode.BICYCLING, getColor(R.color.color_bike));
+        travelColors.put(TravelMode.WALKING, getColor(R.color.color_walk));
+
+        String apiKey = getString(R.string.google_directions_api_key);
+
+        directions = new Directions(getApplicationContext(), apiKey, map, travelColors);
     }
 }
