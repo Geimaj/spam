@@ -13,9 +13,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.ui.auth.AuthUI;
@@ -75,6 +78,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Button btnBike;
     private Button btnWalk;
     private FloatingActionButton fabDirections;
+    private FloatingActionButton fabPreview;
+
+    private LinearLayout detailsLayout;
 
     private GoogleMap map;
     private boolean mapReady = false;
@@ -175,6 +181,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        detailsLayout = (LinearLayout) findViewById(R.id.detailsLayout);
+
         FloatingActionButton fabLocation = (FloatingActionButton) findViewById(R.id.fabLocation);
 
         fabLocation.setOnClickListener(new View.OnClickListener() {
@@ -187,6 +195,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }
         });
+
+        fabPreview = (FloatingActionButton) findViewById(R.id.fabPreview);
+        fabPreview.setOnClickListener(fabPreviewListener);
 
         btnCar = (Button) findViewById(R.id.btnCar);
         btnPublic = (Button) findViewById(R.id.btnTrain);
@@ -212,6 +223,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             travelMode = TravelMode.DRIVING;
             fabDirections.setImageResource(R.drawable.ic_car);
             startDirectionsProcedure(from, destination);
+            detailsLayout.setVisibility(View.VISIBLE);
         }
     };
 
@@ -222,6 +234,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             travelMode = TravelMode.TRANSIT;
             fabDirections.setImageResource(R.drawable.ic_train);
             startDirectionsProcedure(from, destination);
+            detailsLayout.setVisibility(View.VISIBLE);
 
         }
     };
@@ -233,6 +246,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             travelMode = TravelMode.BICYCLING;
             fabDirections.setImageResource(R.drawable.ic_bike);
             startDirectionsProcedure(from, destination);
+            detailsLayout.setVisibility(View.VISIBLE);
 
         }
     };
@@ -244,7 +258,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             travelMode = TravelMode.WALKING;
             fabDirections.setImageResource(R.drawable.ic_walk);
             startDirectionsProcedure(from, destination);
+            detailsLayout.setVisibility(View.VISIBLE);
 
+        }
+    };
+
+    //click listener for preview
+    View.OnClickListener fabPreviewListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            directions.showPreview();
         }
     };
 
@@ -279,13 +302,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void addMarker(Place place){
-                MarkerOptions marker
-                        = new MarkerOptions()
-                        .position(place.getLatLng())
-                        .title(place.getName().toString());
+        if(place != null) {
+
+            MarkerOptions marker
+                    = new MarkerOptions()
+                    .position(place.getLatLng())
+                    .title(place.getName().toString());
 
 
-                map.addMarker(marker);
+            map.addMarker(marker);
+        }
     }
 
     private void startDirectionsProcedure(Place from, Place destination) {
@@ -377,6 +403,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Place place = PlacePicker.getPlace(data, this);
                 destination = place;
                 etDestination.setText(place.getAddress());
+
+                map.clear();
+                addMarker(from);
+                addMarker(destination);
+
                 Log.d(TAG, "Chosen: " + destination.getName());
 
             } else if (resultCode == RESULT_CANCELED) {
@@ -470,6 +501,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         String apiKey = getString(R.string.google_directions_api_key);
 
-        directions = new Directions(getApplicationContext(), apiKey, map, travelColors);
+        TextView detials = (TextView) findViewById(R.id.etTripDetails);
+
+        directions = new Directions(detials,getApplicationContext(), apiKey, map, travelColors);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        Toast.makeText(getApplicationContext(), "KEYDOWN", Toast.LENGTH_SHORT);
+
+        if ((keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)){
+            //Do something
+            directions.decreaseSpeed();
+
+            Toast.makeText(getApplicationContext(), "" + directions.getSpeed(), Toast.LENGTH_SHORT);
+        } else if(keyCode == KeyEvent.KEYCODE_VOLUME_UP){
+            directions.increaseSpeed();
+            Toast.makeText(getApplicationContext(), "" + directions.getSpeed(), Toast.LENGTH_SHORT);
+
+        }
+
+        return true;
     }
 }

@@ -2,11 +2,13 @@ package com.example.jamie.spam;
 
 import android.content.Context;
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.gson.Gson;
@@ -30,22 +32,161 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class Directions {
+public class Directions implements GoogleMap.CancelableCallback{
 
     private HashMap<TravelMode, Integer> travelColors;
     private GoogleMap map;
     private String API_KEY;
     private Context context;
+    private TextView details;
 
-    public Directions(Context context, String apiKey, GoogleMap map, HashMap<TravelMode, Integer> travelColors) {
+    private DirectionsRoute lastDrawnRoute;
+
+    private int animationStep;
+    private List<LatLng> points;
+    private int targetSpeed = 1000;
+    private double scaleFactor = 0.9;
+
+    public Directions(TextView details, Context context, String apiKey, GoogleMap map, HashMap<TravelMode, Integer> travelColors) {
         this.travelColors = travelColors;
         this.map = map;
         this.API_KEY = apiKey;
         this.context = context;
+        this.details = details;
+
+        lastDrawnRoute = null;
+    }
+
+    public void showPreview(){
+        if(lastDrawnRoute != null){
+
+            //zoom in on start
+            centerCamera(lastDrawnRoute, 18);
+
+
+            List<LatLng> points = lastDrawnRoute.overviewPolyline.decodePath();
+            performAnimation(points);
+
+        }
+    }
+
+    private double distanceInKmBetweenEarthCoordinates(double lat1, double lon1, double lat2, double lon2) {
+        double earthRadiusKm = 6371;
+
+        double dLat = radians(lat2-lat1);
+        double dLon = radians(lon2-lon1);
+
+        lat1 = radians(lat1);
+        lat2 = radians(lat2);
+
+        double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return earthRadiusKm * c;
+    }
+
+
+    //starts animation
+    private void performAnimation(List<LatLng> points){
+        map.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+        map.setBuildingsEnabled(true);
+        this.animationStep = 0;
+        this.points = points;
+        animationStep(0, points);
+    }
+
+    //will get called on each step of the animation
+    //calls aim camera
+    private void animationStep(int progress, List<LatLng> points){
+        if(progress >= points.size()){
+            return;
+        }
+
+        LatLng lastPoint = null;
+
+        if(progress == 0){
+            lastPoint = points.get(0);
+        } else {
+            lastPoint = points.get(progress-1);
+        }
+
+        LatLng point = points.get(progress);
+
+        float bearing = getBearing(lastPoint, point);
+
+        double distance = distanceInKmBetweenEarthCoordinates(point.lat, point.lng, lastPoint.lat, lastPoint.lng);
+
+        //how much should we scale the speed according to the distance
+        double scale = scaleFactor * distance;
+
+        double speed = targetSpeed - scale;
+
+        Log.d(MainActivity.TAG, "Step: " + progress + " distance: " + distance);
+        Log.d(MainActivity.TAG, "Speed: " + speed);
+
+        aimCamera(point, bearing, (int)speed);
+    }
+
+    //performs animation
+    //then calls onFinish() when done
+    private void aimCamera(LatLng latlng, float bearing, int speed){
+        com.google.android.gms.maps.model.LatLng properLatLng = new com.google.android.gms.maps.model.LatLng(latlng.lat, latlng.lng);
+        CameraPosition start =
+                new CameraPosition.Builder().target(properLatLng)
+                        .zoom(18)
+                        .bearing(bearing)
+                        .tilt(12)
+                        .build();
+
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(start), speed, this);
+
+    }
+
+    private float getBearing(LatLng l1, LatLng l2){
+        return (float) angleFromCoordinate(l1.lat, l1.lng, l2.lat, l2.lng);
+    }
+
+    private double radians(double n) {
+        return n * (Math.PI / 180);
+    }
+    private double degrees(double n) {
+        return n * (180 / Math.PI);
+    }
+
+    private double angleFromCoordinate(double startLat, double startLong, double endLat, double endLong){
+        startLat = radians(startLat);
+        startLong = radians(startLong);
+        endLat = radians(endLat);
+        endLong = radians(endLong);
+
+        double dLong = endLong - startLong;
+
+        double dPhi = Math.log(Math.tan(endLat/2.0+Math.PI/4.0)/Math.tan(startLat/2.0+Math.PI/4.0));
+        if (Math.abs(dLong) > Math.PI){
+            if (dLong > 0.0)
+                dLong = -(2.0 * Math.PI - dLong);
+            else
+                dLong = (2.0 * Math.PI + dLong);
+        }
+
+        return (degrees(Math.atan2(dLong, dPhi)) + 360.0) % 360.0;
+    }
+
+    private void addMarker(LatLng latlng){
+
+        if(latlng != null) {
+            com.google.android.gms.maps.model.LatLng properLatLng = new com.google.android.gms.maps.model.LatLng(latlng.lat, latlng.lng);
+
+            MarkerOptions marker
+                    = new MarkerOptions()
+                    .position(properLatLng);
+
+            map.addMarker(marker);
+        }
     }
 
     private void drawRoute(DirectionsRoute route) {
-        Log.d(MainActivity.TAG, "Drawing Polyline");
+        lastDrawnRoute = route;
 
         //create polyLineOptions to add to map
         PolylineOptions polylineOptions = new PolylineOptions();
@@ -73,10 +214,13 @@ public class Directions {
         map.addPolyline(polylineOptions);
 
         //center camera
-        centerCamera(route);
+        centerCamera(route, 15);
+
+        //update details label
+        details.setText(getEndLocationTitle(route));
     }
 
-    private void centerCamera(DirectionsRoute route){
+    private void centerCamera(DirectionsRoute route, int zoom){
 
             com.google.maps.model.LatLng start = route.legs[0].startLocation;
             com.google.maps.model.LatLng end = route.legs[0].endLocation;
@@ -93,9 +237,12 @@ public class Directions {
 
             center = new com.google.android.gms.maps.model.LatLng(start.lat, start.lng);
 
-            map.animateCamera(CameraUpdateFactory.newLatLngZoom(center, 15));
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(center, zoom));
     }
 
+    private String getEndLocationTitle(DirectionsRoute route) {
+        return "Time :" + route.legs[0].duration.humanReadable + " Distance :" + route.legs[0].distance.humanReadable;
+    }
 
     //    public interface for drawing routes for all transport types on the given map
     public void drawRoutes(TripData tripData) {
@@ -146,12 +293,6 @@ public class Directions {
                             .destination(tripData.getDestintaionAddress())
                             .departureTime(now)
                             .await();
-
-//            return (DirectionsResult[]) results.toArray();
-
-
-//            drawRoute(result, tripData);
-//
 
 //            saveTrip(tripData);
 
@@ -213,4 +354,33 @@ public class Directions {
                 .setWriteTimeout(20, TimeUnit.SECONDS);
     }
 
+    //will fire after each camera animation is complete
+    @Override
+    public void onFinish() {
+        animationStep(animationStep++, points);
+    }
+
+    @Override
+    public void onCancel() {
+
+    }
+
+
+    //bigger time means longer animation = slower speed
+    public void decreaseSpeed() {
+        if(this.targetSpeed <= 2000){
+            targetSpeed++;
+        }
+    }
+
+    //smaller time = faster animation = faster speed
+    public void increaseSpeed() {
+        if(this.targetSpeed >= 100){
+            targetSpeed--;
+        }
+    }
+
+    public int getSpeed(){
+        return this.targetSpeed;
+    }
 }
