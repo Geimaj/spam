@@ -5,6 +5,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -127,27 +128,35 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
 
             addMarkersToMap(result);
 
-            tvTripDetails.setText(tripData.getTravelMode().toString() + "\n" + getEndLocationTitle(result));
+            if(result.routes.length > 0){
 
-            drawRoute(result);
 
-            com.google.maps.model.LatLng start = result.routes[0].legs[0].startLocation;
-            com.google.maps.model.LatLng end = result.routes[0].legs[0].endLocation;
+                tvTripDetails.setText(tripData.getTravelMode().toString() + "\n" + getEndLocationTitle(result));
 
-            LatLng center;
+                drawRoute(result);
 
-//            LatLngBounds area;
-//            try{
-//                area = new LatLngBounds(new LatLng(end.lat, end.lng), new LatLng(start.lat, start.lng));
-//            } catch (IllegalArgumentException e){
-//                area = new LatLngBounds(new LatLng(start.lat, start.lng), new LatLng(end.lat, end.lng));
-//            }
+                com.google.maps.model.LatLng start = result.routes[0].legs[0].startLocation;
+                com.google.maps.model.LatLng end = result.routes[0].legs[0].endLocation;
 
-            center = new LatLng(start.lat, start.lng);
+                LatLng center;
 
-            map.animateCamera(CameraUpdateFactory.newLatLngZoom(center, 15));
+    //            LatLngBounds area;
+    //            try{
+    //                area = new LatLngBounds(new LatLng(end.lat, end.lng), new LatLng(start.lat, start.lng));
+    //            } catch (IllegalArgumentException e){
+    //                area = new LatLngBounds(new LatLng(start.lat, start.lng), new LatLng(end.lat, end.lng));
+    //            }
 
-            saveTrip(tripData);
+                center = new LatLng(start.lat, start.lng);
+
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(center, 15));
+
+                saveTrip(tripData);
+            } else {
+                finish();
+                Toast.makeText(getApplicationContext(), "No route found", Toast.LENGTH_LONG).show();
+
+            }
 
         } catch (ApiException e) {
             e.printStackTrace();

@@ -96,6 +96,7 @@
             android:layout_marginRight="@dimen/margin_small"
             android:layout_marginTop="@dimen/margin_small"
             android:clickable="true"
+            android:visibility="invisible"
             app:srcCompat="@android:drawable/ic_menu_mylocation" />
 
         <android.support.design.widget.FloatingActionButton
