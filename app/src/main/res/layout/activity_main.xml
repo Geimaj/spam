@@ -99,16 +99,6 @@
             android:visibility="invisible"
             app:srcCompat="@android:drawable/ic_menu_mylocation" />
 
-        <android.support.design.widget.FloatingActionButton
-            android:id="@+id/fabGetDirections"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:layout_marginBottom="@dimen/margin_small"
-            android:layout_marginEnd="@dimen/margin_small"
-            android:clickable="true"
-            app:srcCompat="@drawable/ic_car" />
-
         <fragment
             android:id="@+id/map"
             android:name="com.google.android.gms.maps.MapFragment"
@@ -117,12 +107,50 @@
             android:layout_weight="1"
             tools:context=".MapsActivity" />
 
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="bottom|center_horizontal">
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/fabGetDirections"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginBottom="43dp"
+            android:layout_marginEnd="3dp"
+            android:layout_weight="1"
+            android:clickable="true"
+            app:srcCompat="@drawable/ic_car" />
 
-        </TableRow>
+        <LinearLayout
+            android:id="@+id/detailsLayout"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom"
+            android:background="@android:color/background_light"
+            android:orientation="horizontal"
+            android:visibility="invisible">
+
+            <TextView
+                android:id="@+id/etTripDetails"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:layout_weight="2"
+                android:ems="10"
+                android:inputType="textPersonName"
+                android:text="Name"
+                tools:text="Trip details" />
+
+            <android.support.design.widget.FloatingActionButton
+                android:id="@+id/fabPreview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_marginBottom="0dp"
+                android:layout_marginEnd="0dp"
+                android:layout_weight="1"
+                android:clickable="true"
+                app:srcCompat="?android:attr/alertDialogIcon" />
+
+
+        </LinearLayout>
 
     </FrameLayout>
 

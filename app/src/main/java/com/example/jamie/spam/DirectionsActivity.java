@@ -48,7 +48,6 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
     private TripData tripData;
 
     private boolean mapReady = false;
-    private HashMap<TravelMode, Integer> travelColors;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,11 +62,7 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
         Log.d(MainActivity.TAG, "directions to " + tripData.getDestintaionAddress());
 
 
-        travelColors = new HashMap<>();
-        travelColors.put(TravelMode.DRIVING, getColor(R.color.color_car));
-        travelColors.put(TravelMode.TRANSIT, getColor(R.color.color_public));
-        travelColors.put(TravelMode.BICYCLING, getColor(R.color.color_bike));
-        travelColors.put(TravelMode.WALKING, getColor(R.color.color_walk));
+
 
         tvTripDetails = (TextView) findViewById(R.id.tvTripDetails);
 
@@ -113,119 +108,75 @@ public class DirectionsActivity extends AppCompatActivity implements OnMapReadyC
     private String getEndLocationTitle(DirectionsResult results) {
         return "Time :" + results.routes[0].legs[0].duration.humanReadable + " Distance :" + results.routes[0].legs[0].distance.humanReadable;
     }
+//
+//    private void getDirections() {
+//        DateTime now = new DateTime();
+//
+//        try {
+//            DirectionsResult result =
+//                    DirectionsApi.newRequest(getGeoContext())
+//                            .mode(tripData.getTravelMode())
+//                            .origin(tripData.getOriginAddress())
+//                            .destination(tripData.getDestintaionAddress())
+//                            .departureTime(now)
+//                            .await();
+//
+//            addMarkersToMap(result);
+//
+//            if(result.routes.length > 0){
+//
+//
+//                tvTripDetails.setText(tripData.getTravelMode().toString() + "\n" + getEndLocationTitle(result));
+//
+//                drawRoute(result);
+//
+//                com.google.maps.model.LatLng start = result.routes[0].legs[0].startLocation;
+//                com.google.maps.model.LatLng end = result.routes[0].legs[0].endLocation;
+//
+//                LatLng center;
+//
+//    //            LatLngBounds area;
+//    //            try{
+//    //                area = new LatLngBounds(new LatLng(end.lat, end.lng), new LatLng(start.lat, start.lng));
+//    //            } catch (IllegalArgumentException e){
+//    //                area = new LatLngBounds(new LatLng(start.lat, start.lng), new LatLng(end.lat, end.lng));
+//    //            }
+//
+//                center = new LatLng(start.lat, start.lng);
+//
+//                map.animateCamera(CameraUpdateFactory.newLatLngZoom(center, 15));
+//
+//                saveTrip(tripData);
+//            } else {
+//                finish();
+//                Toast.makeText(getApplicationContext(), "No route found", Toast.LENGTH_LONG).show();
+//
+//            }
+//
+//        } catch (ApiException e) {
+//            e.printStackTrace();
+//            Log.d(MainActivity.TAG, "API ERROR");
+//        } catch (InterruptedException e) {
+//            Log.d(MainActivity.TAG, "INTERRUPTED");
+//            e.printStackTrace();
+//        } catch (IOException e) {
+//            Log.d(MainActivity.TAG, "IO E");
+//            e.printStackTrace();
+//        }
+//
+//    }
 
-    private void getDirections() {
-        DateTime now = new DateTime();
-
-        try {
-            DirectionsResult result =
-                    DirectionsApi.newRequest(getGeoContext())
-                            .mode(tripData.getTravelMode())
-                            .origin(tripData.getOriginAddress())
-                            .destination(tripData.getDestintaionAddress())
-                            .departureTime(now)
-                            .await();
-
-            addMarkersToMap(result);
-
-            if(result.routes.length > 0){
 
 
-                tvTripDetails.setText(tripData.getTravelMode().toString() + "\n" + getEndLocationTitle(result));
 
-                drawRoute(result);
 
-                com.google.maps.model.LatLng start = result.routes[0].legs[0].startLocation;
-                com.google.maps.model.LatLng end = result.routes[0].legs[0].endLocation;
-
-                LatLng center;
-
-    //            LatLngBounds area;
-    //            try{
-    //                area = new LatLngBounds(new LatLng(end.lat, end.lng), new LatLng(start.lat, start.lng));
-    //            } catch (IllegalArgumentException e){
-    //                area = new LatLngBounds(new LatLng(start.lat, start.lng), new LatLng(end.lat, end.lng));
-    //            }
-
-                center = new LatLng(start.lat, start.lng);
-
-                map.animateCamera(CameraUpdateFactory.newLatLngZoom(center, 15));
-
-                saveTrip(tripData);
-            } else {
-                finish();
-                Toast.makeText(getApplicationContext(), "No route found", Toast.LENGTH_LONG).show();
-
-            }
-
-        } catch (ApiException e) {
-            e.printStackTrace();
-            Log.d(MainActivity.TAG, "API ERROR");
-        } catch (InterruptedException e) {
-            Log.d(MainActivity.TAG, "INTERRUPTED");
-            e.printStackTrace();
-        } catch (IOException e) {
-            Log.d(MainActivity.TAG, "IO E");
-            e.printStackTrace();
-        }
-
-    }
-
-    private void saveTrip(TripData tripData) {
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference("trip");
-
-        myRef.push().setValue(tripData);
-
-    }
-
-    private void drawRoute(DirectionsResult result) {
-        Log.d(MainActivity.TAG, "Drawing Polyline");
-
-        if(mapReady){
-            //create polyLineOptions to add to map
-            PolylineOptions polylineOptions = new PolylineOptions();
-
-            //loop through each step
-            for (DirectionsStep step : result.routes[0].legs[0].steps) {
-
-                //get polyLine for this step
-                EncodedPolyline encodedPolyline= step.polyline;
-
-                //decode polyLine
-                List<com.google.maps.model.LatLng> points = encodedPolyline.decodePath();
-
-                //loop through decoded polyLine
-                for(int i = 0; i < points.size(); i++){
-                    com.google.maps.model.LatLng latLng = points.get(i);
-
-                    polylineOptions.add(new LatLng(latLng.lat, latLng.lng));
-                }
-
-            }
-
-            polylineOptions.color(travelColors.get(tripData.getTravelMode()));
-
-            map.addPolyline(polylineOptions);
-        }
-
-    }
-
-    private GeoApiContext getGeoContext() {
-        GeoApiContext geoApiContext = new GeoApiContext();
-        return geoApiContext.setQueryRateLimit(3)
-                .setApiKey(getString(R.string.google_directions_api_key))
-                .setConnectTimeout(40, TimeUnit.SECONDS)
-                .setReadTimeout(20, TimeUnit.SECONDS)
-                .setWriteTimeout(20, TimeUnit.SECONDS);
-    }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
         mapReady = true;
 
-        getDirections();
+//        getDirections();
 
     }
 }

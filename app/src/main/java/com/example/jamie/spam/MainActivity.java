@@ -1,11 +1,10 @@
 package com.example.jamie.spam;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
@@ -14,9 +13,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.ui.auth.AuthUI;
@@ -27,26 +29,29 @@ import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceDetectionClient;
-import com.google.android.gms.location.places.PlaceLikelihood;
 import com.google.android.gms.location.places.PlaceLikelihoodBufferResponse;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.gson.Gson;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.TravelMode;
 
-import java.io.Serializable;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback{
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     public static final String TAG = "DEBUGZ";
 
@@ -72,14 +77,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private EditText etDestination;
     private EditText etFrom;
+    private TextView etTripDetials;
+
     private MapFragment mapFragment;
     private Button btnCar;
     private Button btnPublic;
     private Button btnBike;
     private Button btnWalk;
     private FloatingActionButton fabDirections;
+    private FloatingActionButton fabPreview;
+
+    private LinearLayout detailsLayout;
 
     private GoogleMap map;
+    private boolean mapReady = false;
+
+    private Directions directions;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +110,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
 
         getLocationPermission();
+
+//        getCurrentLocation();
 
         //setup auth
 
@@ -147,23 +162,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
-        etFrom.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View view, boolean b) {
-                pickPlace(RC_PLACE_PICKER_ORIGIN);
-            }
-        });
-
         etDestination.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                pickPlace(RC_PLACE_PICKER_DESTINATION);
-            }
-        });
-
-        etDestination.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View view, boolean b) {
                 pickPlace(RC_PLACE_PICKER_DESTINATION);
             }
         });
@@ -179,8 +180,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
                     if (mLocationPermissionGranted) {
-                        //next activity
-                        startDirectionsActivity(from, destination);
+                        //display directions
+                        startDirectionsProcedure(from, destination);
+                        //save trip
+                        TripData tripData = new TripData(mAuth.getCurrentUser().getUid(), travelMode, from, destination);
+                        saveTrip(tripData);
+
+
                     } else {
                         getLocationPermission();
                     }
@@ -189,12 +195,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        detailsLayout = (LinearLayout) findViewById(R.id.detailsLayout);
+
         FloatingActionButton fabLocation = (FloatingActionButton) findViewById(R.id.fabLocation);
 
         fabLocation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mLocationPermissionGranted){
+                if (mLocationPermissionGranted) {
                     Log.d(TAG, "GOT PERMS");
                 } else {
                     getLocationPermission();
@@ -202,10 +210,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        fabPreview = (FloatingActionButton) findViewById(R.id.fabPreview);
+        fabPreview.setOnClickListener(fabPreviewListener);
+
         btnCar = (Button) findViewById(R.id.btnCar);
         btnPublic = (Button) findViewById(R.id.btnTrain);
         btnBike = (Button) findViewById(R.id.btnBike);
         btnWalk = (Button) findViewById(R.id.btnWalk);
+
+        etTripDetials = (TextView) findViewById(R.id.etTripDetails);
 
         btnCar.setOnClickListener(btnCarClickListener);
         btnPublic.setOnClickListener(btnPublicClickListener);
@@ -215,14 +228,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (isServicesVersionCorrect()) {
             init();
         }
-
-
-    }
-
-    public void unselectButtons(Button[] buttons) {
-        for(Button button : buttons){
-//            button.sel
-        }
     }
 
     // Click listener for car button
@@ -231,25 +236,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         public void onClick(View view) {
             travelMode = TravelMode.DRIVING;
             fabDirections.setImageResource(R.drawable.ic_car);
+
+            Log.d(TAG, "FROM: " + from.getAddress());
+            Log.d(TAG, "DESTINATION: " + destination.getAddress());
+
+            startDirectionsProcedure(from, destination);
+
         }
     };
 
     // Click listener for  public button
-
     View.OnClickListener btnPublicClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
             travelMode = TravelMode.TRANSIT;
             fabDirections.setImageResource(R.drawable.ic_train);
+            startDirectionsProcedure(from, destination);
         }
     };
-    // Click listener for bike button
 
+    // Click listener for bike button
     View.OnClickListener btnBikeClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
             travelMode = TravelMode.BICYCLING;
             fabDirections.setImageResource(R.drawable.ic_bike);
+            startDirectionsProcedure(from, destination);
         }
     };
 
@@ -259,12 +271,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         public void onClick(View view) {
             travelMode = TravelMode.WALKING;
             fabDirections.setImageResource(R.drawable.ic_walk);
+            startDirectionsProcedure(from, destination);
+            detailsLayout.setVisibility(View.VISIBLE);
+
         }
     };
 
-    private void getCurrentLocation(){
+    //click listener for preview
+    View.OnClickListener fabPreviewListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            directions.showPreview();
+        }
+    };
 
-        @SuppressLint("MissingPermission")
+    private void getCurrentLocation() {
+
+//        @SuppressLint("MissingPermission")
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            getLocationPermission();
+            return;
+        }
         Task<PlaceLikelihoodBufferResponse> placeResult =
                 mPlaceDetectionClient.getCurrentPlace(null);
         placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
@@ -275,18 +303,81 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if(likelyPlaces.get(0) != null){
                     Place p = likelyPlaces.get(0).getPlace();
 
-                    startDirectionsActivity(p, destination);
+                    if(p != null){
+
+//                        from = p;
+//                        Log.d(TAG, p.getAddress().toString());
+                        Place frozen = p.freeze();
+                        setFrom(frozen);
+//                        release();
+                        //add marker to current location
+                        addMarker(p);
+                    }
+
                     likelyPlaces.release();
                 }
 
                 likelyPlaces.release();
+
             }
         });
 
     }
 
+    public void setFrom(Place ufrom){
+        if (ufrom != null) {
+            Log.d(TAG, "got location");
+            Log.d(TAG, ufrom.getAddress().toString());
 
-    private void startDirectionsActivity(Place from, Place destination) {
+            from = ufrom;
+            Log.d(TAG, "from = " + from.getAddress().toString());
+
+
+        }
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int action = event.getAction();
+        int keyCode = event.getKeyCode();
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_UP:
+                if (action == KeyEvent.ACTION_DOWN) {
+                    Log.d(TAG, "UP");
+
+                    directions.increaseSpeed();
+                    Toast.makeText(getApplicationContext(), "" + directions.getSpeed(), Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                if (action == KeyEvent.ACTION_DOWN) {
+                    Log.d(TAG, "DOWN");
+
+                    directions.decreaseSpeed();
+                    Toast.makeText(getApplicationContext(), "" + directions.getSpeed(), Toast.LENGTH_SHORT).show();
+
+                }
+                return true;
+            default:
+                return super.dispatchKeyEvent(event);
+        }
+    }
+
+
+    private void addMarker(Place place){
+        if(place != null) {
+
+            MarkerOptions marker
+                    = new MarkerOptions()
+                    .position(place.getLatLng())
+                    .title(place.getName().toString());
+
+
+            map.addMarker(marker);
+        }
+    }
+
+    private void startDirectionsProcedure(Place from, Place destination) {
         if(from == null){
             if(mLocationPermissionGranted){
                 //get current location
@@ -298,19 +389,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         if(destination == null){
+            Toast.makeText(getApplicationContext(), "Select a destination", Toast.LENGTH_LONG).show();
             return;
         }
 
-        Intent i = new Intent(getApplicationContext(), DirectionsActivity.class);
 
         TripData tripData = new TripData(mAuth.getCurrentUser().getUid(), travelMode, from, destination);
 
-        Log.d(TAG, "starting directions for " + from.getName() + destination.getName());
+        DirectionsResult directionsResult = directions.getDirections(tripData);
 
+        if(directionsResult == null || directionsResult.routes.length <= 0) {
+            Toast.makeText(getApplicationContext(), "No directions found", Toast.LENGTH_LONG).show();
+            detailsLayout.setVisibility(View.INVISIBLE);
+        } else {
+            directions.drawRoutes(directionsResult);
+            String details = directions.getEndLocationTitle(directionsResult.routes[0]);
 
-        i.putExtra("tripData", tripData);
+            detailsLayout.setVisibility(View.VISIBLE);
+            etTripDetials.setText(details);
+        }
 
-        startActivity(i);
     }
 
 
@@ -372,40 +470,40 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Toast.makeText(MainActivity.this, "Signed in canceled", Toast.LENGTH_LONG).show();
                 finish();
             }
+
         } else if (requestCode == RC_PLACE_PICKER_DESTINATION) {
             if (resultCode == RESULT_OK) {
                 Place place = PlacePicker.getPlace(data, this);
                 destination = place;
                 etDestination.setText(place.getAddress());
 
-                MarkerOptions destinationMarker
-                        = new MarkerOptions()
-                        .position(destination.getLatLng())
-                        .title(destination.getName().toString());
+                map.clear();
+                addMarker(from);
+                addMarker(destination);
 
-                map.addMarker(destinationMarker);
-
+                Log.d(TAG, "Chosen: " + destination.getName());
 
             } else if (resultCode == RESULT_CANCELED) {
                 Log.d(TAG, "Place pick canceled");
+                etDestination.setText("");
             }
+
+            fabDirections.requestFocus();
         } else if (requestCode == RC_PLACE_PICKER_ORIGIN) {
             if(resultCode == RESULT_OK){
                 Place place = PlacePicker.getPlace(data, this);
                 from = place;
                 etFrom.setText(place.getAddress());
 
-                MarkerOptions destinationMarker
-                        = new MarkerOptions()
-                        .position(from.getLatLng())
-                        .title(from.getName().toString());
-
-                map.addMarker(destinationMarker);
+                map.clear();
+                addMarker(from);
 
 
             } else if(resultCode == RESULT_CANCELED){
                 Log.d(TAG, "Place pick canceled");
             }
+
+            fabDirections.requestFocus();
         }
 
     }
@@ -453,11 +551,38 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void init() {
-
+        Log.d(TAG, "initializing activity...");
+        getCurrentLocation();
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
+        mapReady = true;
+
+
+        //fetch our colors corresponding to the travel mode
+        HashMap<TravelMode, Integer> travelColors = new HashMap<>();
+        travelColors.put(TravelMode.DRIVING, getColor(R.color.color_car));
+        travelColors.put(TravelMode.TRANSIT, getColor(R.color.color_public));
+        travelColors.put(TravelMode.BICYCLING, getColor(R.color.color_bike));
+        travelColors.put(TravelMode.WALKING, getColor(R.color.color_walk));
+
+        String apiKey = getString(R.string.google_directions_api_key);
+
+
+        directions = new Directions(getApplicationContext(), apiKey, map, travelColors);
+
+
+
     }
+
+    private void saveTrip(TripData tripData) {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference("trip");
+
+        myRef.push().setValue(tripData);
+
+    }
+
 }
