@@ -138,16 +138,12 @@
                 android:text="Name"
                 tools:text="Trip details" />
 
-            <android.support.design.widget.FloatingActionButton
-                android:id="@+id/fabPreview"
+            <Button
+                android:id="@+id/btnPreview"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="bottom|end"
-                android:layout_marginBottom="0dp"
-                android:layout_marginEnd="0dp"
-                android:layout_weight="1"
-                android:clickable="true"
-                app:srcCompat="?android:attr/alertDialogIcon" />
+                android:layout_weight="2"
+                android:text="preview" />
 
 
         </LinearLayout>

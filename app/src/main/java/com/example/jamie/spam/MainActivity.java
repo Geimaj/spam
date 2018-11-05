@@ -84,8 +84,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Button btnPublic;
     private Button btnBike;
     private Button btnWalk;
+    private Button btnPreview;
     private FloatingActionButton fabDirections;
-    private FloatingActionButton fabPreview;
 
     private LinearLayout detailsLayout;
 
@@ -210,13 +210,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
-        fabPreview = (FloatingActionButton) findViewById(R.id.fabPreview);
-        fabPreview.setOnClickListener(fabPreviewListener);
 
         btnCar = (Button) findViewById(R.id.btnCar);
         btnPublic = (Button) findViewById(R.id.btnTrain);
         btnBike = (Button) findViewById(R.id.btnBike);
         btnWalk = (Button) findViewById(R.id.btnWalk);
+        btnPreview = (Button) findViewById(R.id.btnPreview);
 
         etTripDetials = (TextView) findViewById(R.id.etTripDetails);
 
@@ -224,6 +223,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         btnPublic.setOnClickListener(btnPublicClickListener);
         btnBike.setOnClickListener(btnBikeClickListener);
         btnWalk.setOnClickListener(btnWalkClickListener);
+        btnPreview.setOnClickListener(previewListener);
 
         if (isServicesVersionCorrect()) {
             init();
@@ -278,7 +278,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     };
 
     //click listener for preview
-    View.OnClickListener fabPreviewListener = new View.OnClickListener() {
+    View.OnClickListener previewListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
             directions.showPreview();
@@ -286,8 +286,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     };
 
     private void getCurrentLocation() {
-
-//        @SuppressLint("MissingPermission")
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             getLocationPermission();
